@@ -15,6 +15,36 @@ Use it to:
 - Export AAS JSON that conforms to Spec Part 1 v3.0
 - Create/update submodels in BaSyx (optional)
 
+## Screenshot walkthrough (5 tiles)
+
+<table>
+  <tr>
+    <td>
+      <img src="docs/images/walkthrough-1-home.png" width="240" alt="Home template list">
+      <br>Home (template list)
+    </td>
+    <td>
+      <img src="docs/images/walkthrough-2-template.png" width="240" alt="Template form view">
+      <br>Template form
+    </td>
+    <td>
+      <img src="docs/images/walkthrough-3-language.png" width="240" alt="Add language dropdown">
+      <br>Add language
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="docs/images/walkthrough-4-file.png" width="240" alt="File upload field">
+      <br>File upload
+    </td>
+    <td>
+      <img src="docs/images/walkthrough-5-actions.png" width="240" alt="Export and save actions">
+      <br>Export actions
+    </td>
+    <td></td>
+  </tr>
+</table>
+
 ## Visual walkthrough (UI map + flow)
 
 ### Screen layout (mental model)

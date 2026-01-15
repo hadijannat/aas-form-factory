@@ -6,14 +6,14 @@
 'use client';
 
 import * as React from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { IDTAFormRenderer } from '@/lib/renderer';
-import { exportToSubmodel } from '@/lib/exporters/aas-exporter';
+import { exportToSubmodel, validateSubmodelSchema } from '@/lib/exporters/aas-exporter';
 import { exportToAASX } from '@/lib/exporters/aasx-exporter';
 import { parseSubmodelTemplate } from '@/lib/parser/template-parser';
 import {
@@ -23,6 +23,8 @@ import {
   type TemplateCatalogEntry,
 } from '@/lib/parser/template-fetcher';
 import type { Submodel } from '@/types/aas';
+import type { FormActions } from '@/lib/renderer/IDTAFormRenderer';
+import { importSubmodelValues } from '@/lib/importers/submodel-importer';
 
 // =============================================================================
 // ICONS
@@ -60,17 +62,22 @@ function AlertIcon({ className }: { className?: string }) {
 export default function TemplatePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const templateId = params.templateId as string;
+  const submodelId = searchParams.get('submodelId');
 
   // State
   const [templates, setTemplates] = React.useState<TemplateCatalogEntry[]>([]);
   const [submodel, setSubmodel] = React.useState<Submodel | null>(null);
   const [formValues, setFormValues] = React.useState<Record<string, unknown>>({});
+  const [initialValues, setInitialValues] = React.useState<Record<string, unknown>>({});
+  const [formKey, setFormKey] = React.useState<string>('form');
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(true);
   const [connectionStatus, setConnectionStatus] = React.useState<'connected' | 'disconnected' | 'checking'>('checking');
   const [isSaving, setIsSaving] = React.useState(false);
+  const formActionsRef = React.useRef<FormActions | null>(null);
 
   // Load all templates for sidebar
   React.useEffect(() => {
@@ -108,6 +115,43 @@ export default function TemplatePage() {
     }
   }, [templateId]);
 
+  // Reset form when template changes
+  React.useEffect(() => {
+    setInitialValues({});
+    setFormValues({});
+    setFormKey(`template-${templateId}`);
+  }, [templateId]);
+
+  // Load existing submodel if submodelId is provided
+  React.useEffect(() => {
+    if (!submodelId) return;
+
+    const loadExisting = async () => {
+      try {
+        const response = await fetch(`/api/submodels?id=${encodeURIComponent(submodelId)}`);
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to load submodel');
+        }
+
+        const data = await response.json();
+        const existingSubmodel = data.submodel as Submodel;
+        const importedValues = importSubmodelValues(existingSubmodel);
+
+        setInitialValues(importedValues);
+        setFormValues(importedValues);
+        setFormKey(`submodel-${submodelId}`);
+      } catch (err) {
+        console.error('Failed to load existing submodel:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load existing submodel');
+      }
+    };
+
+    if (submodel) {
+      loadExisting();
+    }
+  }, [submodel, submodelId]);
+
   // Check BaSyx connection
   React.useEffect(() => {
     const checkConnection = async () => {
@@ -131,11 +175,23 @@ export default function TemplatePage() {
     if (!submodel) return;
 
     try {
+      const isValid = formActionsRef.current?.validate();
+      if (isValid === false) {
+        alert('Please fix validation errors before exporting.');
+        return;
+      }
+
       const template = parseSubmodelTemplate(submodel);
       const result = exportToSubmodel(template, formValues, {
         prettyPrint: true,
         generateIds: true,
       });
+
+      const schemaErrors = validateSubmodelSchema(result.submodel);
+      if (schemaErrors.length > 0) {
+        alert(`Schema validation failed:\\n${schemaErrors.slice(0, 5).join('\\n')}`);
+        return;
+      }
 
       // Download the JSON
       const blob = new Blob([result.json], { type: 'application/json' });
@@ -158,10 +214,22 @@ export default function TemplatePage() {
     if (!submodel) return;
 
     try {
+      const isValid = formActionsRef.current?.validate();
+      if (isValid === false) {
+        alert('Please fix validation errors before exporting.');
+        return;
+      }
+
       const template = parseSubmodelTemplate(submodel);
       const { submodel: exportedSubmodel } = exportToSubmodel(template, formValues, {
         generateIds: true,
       });
+
+      const schemaErrors = validateSubmodelSchema(exportedSubmodel);
+      if (schemaErrors.length > 0) {
+        alert(`Schema validation failed:\\n${schemaErrors.slice(0, 5).join('\\n')}`);
+        return;
+      }
 
       const result = await exportToAASX(exportedSubmodel, {
         filename: `${submodel.idShort || 'submodel'}.aasx`,
@@ -188,10 +256,22 @@ export default function TemplatePage() {
 
     setIsSaving(true);
     try {
+      const isValid = formActionsRef.current?.validate();
+      if (isValid === false) {
+        alert('Please fix validation errors before saving.');
+        return;
+      }
+
       const template = parseSubmodelTemplate(submodel);
       const { submodel: exportedSubmodel } = exportToSubmodel(template, formValues, {
         generateIds: true,
       });
+
+      const schemaErrors = validateSubmodelSchema(exportedSubmodel);
+      if (schemaErrors.length > 0) {
+        alert(`Schema validation failed:\\n${schemaErrors.slice(0, 5).join('\\n')}`);
+        return;
+      }
 
       const response = await fetch('/api/submodels', {
         method: 'POST',
@@ -303,8 +383,13 @@ export default function TemplatePage() {
           {submodel && !isLoading && !error && (
             <Card className="p-6">
               <IDTAFormRenderer
+                key={formKey}
                 submodel={submodel}
+                initialValues={initialValues}
                 onChange={handleFormChange}
+                onActionsReady={(actions) => {
+                  formActionsRef.current = actions;
+                }}
                 onSubmit={async (values) => {
                   console.log('Form submitted:', values);
                   await handleSaveToBaSyx();

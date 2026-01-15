@@ -5,7 +5,7 @@
 
 import type { Environment, Submodel } from '@/types/aas';
 
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/admin-shell-io/submodel-templates/main/published';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/admin-shell-io/submodel-templates/main';
 
 /**
  * Template metadata for known IDTA templates
@@ -39,10 +39,10 @@ export const IDTA_TEMPLATES: TemplateCatalogEntry[] = [
     id: 'digital-nameplate',
     idShort: 'Nameplate',
     name: 'Digital Nameplate',
-    version: '3',
+    version: '2',
     revision: '0',
-    semanticId: 'https://admin-shell.io/idta/nameplate/3/0/Nameplate',
-    path: 'Digital nameplate/3/0/IDTA 02006-3-0_Template_Digital Nameplate.json',
+    semanticId: 'https://admin-shell.io/idta/nameplate/2/0/Nameplate',
+    path: 'deprecated/Digital nameplate/2/0/IDTA 02006-2-0_Template_Digital Nameplate.json',
     description: 'Provides basic product identification information (manufacturer, serial number, etc.)',
     category: 'Identification',
   },
@@ -53,7 +53,7 @@ export const IDTA_TEMPLATES: TemplateCatalogEntry[] = [
     version: '1',
     revision: '0',
     semanticId: 'https://admin-shell.io/zvei/nameplate/1/0/ContactInformation',
-    path: 'Contact Information/1/0/IDTA 02002-1-0_Submodel_ContactInformation.json',
+    path: 'published/Contact Information/1/0/IDTA 02002-1-0_Template_ContactInformation.json',
     description: 'Contact details for manufacturer or service provider',
     category: 'Identification',
   },
@@ -64,7 +64,7 @@ export const IDTA_TEMPLATES: TemplateCatalogEntry[] = [
     version: '1',
     revision: '2',
     semanticId: 'https://admin-shell.io/ZVEI/TechnicalData/1/2',
-    path: 'Technical Data/1/2/IDTA 02003-1-2_Submodel_TechnicalData.json',
+    path: 'published/Technical_Data/1/2/IDTA_02003-1-2_Template_TechnicalData.json',
     description: 'Technical specifications and characteristics of an asset',
     category: 'Technical',
   },
@@ -72,10 +72,10 @@ export const IDTA_TEMPLATES: TemplateCatalogEntry[] = [
     id: 'handover-documentation',
     idShort: 'HandoverDocumentation',
     name: 'Handover Documentation',
-    version: '2',
-    revision: '0',
-    semanticId: 'https://admin-shell.io/VDMA/HandoverDocumentation/2/0',
-    path: 'Handover Documentation/2/0/IDTA 02004-2-0_Submodel_HandoverDocumentation.json',
+    version: '1',
+    revision: '2',
+    semanticId: 'https://admin-shell.io/VDMA/HandoverDocumentation/1/2',
+    path: 'deprecated/Handover Documentation/1/2/IDTA 02004-1-2_Template_Handover Documentation.json',
     description: 'Documentation package for asset handover',
     category: 'Documentation',
   },
@@ -86,7 +86,7 @@ export const IDTA_TEMPLATES: TemplateCatalogEntry[] = [
     version: '1',
     revision: '0',
     semanticId: 'https://admin-shell.io/idta/CarbonFootprint/1/0',
-    path: 'Carbon Footprint/1/0/IDTA 02029-1-0_Submodel_CarbonFootprint.json',
+    path: 'published/Carbon Footprint/1/0/IDTA 02023 _Template_CarbonFootprint.json',
     description: 'Product carbon footprint information for sustainability reporting',
     category: 'Sustainability',
   },
@@ -97,7 +97,7 @@ export const IDTA_TEMPLATES: TemplateCatalogEntry[] = [
     version: '1',
     revision: '0',
     semanticId: 'https://admin-shell.io/idta/BillOfMaterial/1/0',
-    path: 'Bill of Material/1/0/IDTA 02028-1-0_Template_BillOfMaterial.json',
+    path: 'published/Bill of Material/1/0/IDTA 02028-1-0_Template_BillOfMaterial.json',
     description: 'Hierarchical bill of material structure',
     category: 'Technical',
   },

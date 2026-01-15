@@ -16,8 +16,16 @@ const client = new BaSyxClient({
  * GET /api/submodels
  * List all submodels from BaSyx
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const id = url.searchParams.get('id');
+
+    if (id) {
+      const submodel = await client.getSubmodel(id);
+      return NextResponse.json({ submodel });
+    }
+
     const submodels = await client.listSubmodels();
     return NextResponse.json({ submodels });
   } catch (error) {

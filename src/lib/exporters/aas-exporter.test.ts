@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { exportToSubmodel, validateSubmodel } from './aas-exporter';
+import { exportToSubmodel, validateSubmodel, validateSubmodelSchema } from './aas-exporter';
 import { parseSubmodelTemplate } from '../parser/template-parser';
-import type { Submodel } from '@/types/aas';
+import type { Submodel, SubmodelElementList } from '@/types/aas';
 
 // =============================================================================
 // TEST DATA
@@ -57,6 +57,49 @@ const testSubmodel: Submodel = {
           modelType: 'Property',
           idShort: 'City',
           valueType: 'xs:string',
+        },
+      ],
+    },
+  ],
+};
+
+const submodelWithArrayProperty: Submodel = {
+  modelType: 'Submodel',
+  id: 'https://example.org/submodel/array',
+  idShort: 'ArraySubmodel',
+  kind: 'Template',
+  submodelElements: [
+    {
+      modelType: 'Property',
+      idShort: 'SerialNumber',
+      valueType: 'xs:string',
+      qualifiers: [
+        {
+          type: 'SMT/Cardinality',
+          valueType: 'xs:string',
+          value: 'ZeroToMany',
+        },
+      ],
+    },
+  ],
+};
+
+const submodelWithList: Submodel = {
+  modelType: 'Submodel',
+  id: 'https://example.org/submodel/list',
+  idShort: 'ListSubmodel',
+  kind: 'Template',
+  submodelElements: [
+    {
+      modelType: 'SubmodelElementList',
+      idShort: 'Measurements',
+      typeValueListElement: 'Property',
+      valueTypeListElement: 'xs:decimal',
+      value: [
+        {
+          modelType: 'Property',
+          idShort: 'Measurement',
+          valueType: 'xs:decimal',
         },
       ],
     },
@@ -175,6 +218,40 @@ describe('exportToSubmodel', () => {
     const parsed = JSON.parse(result.json);
     expect(parsed.idShort).toBe('Nameplate');
   });
+
+  it('should export array properties as SubmodelElementList', () => {
+    const template = parseSubmodelTemplate(submodelWithArrayProperty);
+    const values = {
+      'SerialNumber.0': 'A-001',
+      'SerialNumber.1': 'A-002',
+    };
+
+    const result = exportToSubmodel(template, values);
+    const listElement = result.submodel.submodelElements?.[0] as SubmodelElementList;
+
+    expect(listElement.modelType).toBe('SubmodelElementList');
+    expect(listElement.typeValueListElement).toBe('Property');
+    expect(listElement.value?.length).toBe(2);
+    expect(listElement.value?.[0].modelType).toBe('Property');
+    expect(listElement.value?.[0].idShort).toBe('SerialNumber');
+  });
+
+  it('should export SubmodelElementList items from indexed values', () => {
+    const template = parseSubmodelTemplate(submodelWithList);
+    const values = {
+      'Measurements.0.Measurement': 10.5,
+      'Measurements.1.Measurement': 12.75,
+    };
+
+    const result = exportToSubmodel(template, values);
+    const listElement = result.submodel.submodelElements?.[0] as SubmodelElementList;
+
+    expect(listElement.modelType).toBe('SubmodelElementList');
+    expect(listElement.typeValueListElement).toBe('Property');
+    expect(listElement.valueTypeListElement).toBe('xs:decimal');
+    expect(listElement.value?.length).toBe(2);
+    expect(listElement.value?.[0].modelType).toBe('Property');
+  });
 });
 
 describe('validateSubmodel', () => {
@@ -205,5 +282,26 @@ describe('validateSubmodel', () => {
 
     const errors = validateSubmodel(submodel);
     expect(errors).toContain('Submodel must have an idShort');
+  });
+});
+
+describe('validateSubmodelSchema', () => {
+  it('should validate a schema-compliant submodel', () => {
+    const template = parseSubmodelTemplate(testSubmodel);
+    const values = { ManufacturerName: 'ACME Corp' };
+    const result = exportToSubmodel(template, values);
+
+    const errors = validateSubmodelSchema(result.submodel);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('should report schema errors for invalid submodel', () => {
+    const invalidSubmodel = {
+      modelType: 'Submodel',
+      idShort: 'MissingId',
+    } as Submodel;
+
+    const errors = validateSubmodelSchema(invalidSubmodel);
+    expect(errors.length).toBeGreaterThan(0);
   });
 });

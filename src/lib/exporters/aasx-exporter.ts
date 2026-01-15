@@ -4,7 +4,7 @@
  */
 
 import JSZip from 'jszip';
-import type { Submodel, Environment } from '@/types/aas';
+import type { Submodel, Environment, SubmodelElement } from '@/types/aas';
 
 // =============================================================================
 // AASX CONSTANTS
@@ -228,7 +228,7 @@ function serializeSubmodelToXML(
 }
 
 function serializeElementToXML(
-  element: any,
+  element: SubmodelElement,
   prettyPrint: boolean,
   depth: number
 ): string {
@@ -258,7 +258,7 @@ function serializeElementToXML(
     xml += `${indent}  </value>${newline}`;
   }
 
-  if (element.value && Array.isArray(element.value) && element.modelType === 'SubmodelElementCollection') {
+  if (element.modelType === 'SubmodelElementCollection' && element.value && Array.isArray(element.value)) {
     xml += `${indent}  <value>${newline}`;
     for (const child of element.value) {
       xml += serializeElementToXML(child, prettyPrint, depth + 2);

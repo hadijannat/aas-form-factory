@@ -43,7 +43,7 @@ services:
   # BaSyx AAS Registry - Discovery Service
   # ---------------------------------------------------------------------------
   aas-registry:
-    image: eclipsebasyx/aas-registry-log-mongodb:2.0.0-milestone-03
+    image: eclipsebasyx/aas-registry-log-mongodb:2.0.0-milestone-03.1
     container_name: aas-registry
     ports:
       - "4000:8080"
@@ -71,7 +71,7 @@ services:
   # BaSyx AAS Environment - Main AAS API
   # ---------------------------------------------------------------------------
   aas-environment:
-    image: eclipsebasyx/aas-environment:2.0.0-milestone-03
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-03.1
     container_name: aas-environment
     ports:
       - "4001:8081"

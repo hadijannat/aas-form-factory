@@ -18,6 +18,8 @@ export { SelectInput, type SelectInputProps, type SelectOption } from './SelectI
 export { MultiLanguageInput, type MultiLanguageInputProps, type LangString } from './MultiLanguageInput';
 export { RangeInput, type RangeInputProps, type RangeValue } from './RangeInput';
 export { FileInput, type FileInputProps, type FileValue } from './FileInput';
+export { FormSection, type FormSectionProps } from './FormSection';
+export { ReadOnlyValue, type ReadOnlyValueProps } from './ReadOnlyValue';
 
 // Container components
 export { SMCContainer, type SMCContainerProps } from './SMCContainer';

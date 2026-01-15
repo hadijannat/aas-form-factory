@@ -14,6 +14,8 @@ import { RangeInput } from './RangeInput';
 import { FileInput } from './FileInput';
 import { SMCContainer } from './SMCContainer';
 import { ArrayContainer } from './ArrayContainer';
+import { FormSection } from './FormSection';
+import { ReadOnlyValue } from './ReadOnlyValue';
 
 /**
  * Component registry mapping catalog names to React components
@@ -36,6 +38,12 @@ export const componentRegistry = {
   SMCContainer,
   ArrayContainer,
 
+  // Layout components
+  FormSection,
+
+  // Display components
+  ReadOnlyValue,
+
   // Aliases for input type mapping
   text: TextInput,
   textarea: TextInput,
@@ -52,6 +60,7 @@ export const componentRegistry = {
   file: FileInput,
   collection: SMCContainer,
   list: ArrayContainer,
+  readonly: ReadOnlyValue,
 } as const;
 
 export type ComponentName = keyof typeof componentRegistry;
@@ -88,7 +97,7 @@ export function getComponentForInputType(inputType: string) {
     collection: 'SMCContainer',
     list: 'ArrayContainer',
     entity: 'SMCContainer',
-    readonly: 'TextInput',
+    readonly: 'ReadOnlyValue',
   };
 
   return componentRegistry[mapping[inputType] || 'TextInput'];

@@ -49,9 +49,12 @@ export class BaSyxClient {
    */
   async listSubmodels(): Promise<Submodel[]> {
     const response = await this.fetch('/submodels');
-    const data = await response.json();
+    const data = await this.parseJson<unknown>(response);
     // BaSyx returns paginated result
-    return data.result || data;
+    if (!data) {
+      return [];
+    }
+    return (data as { result?: Submodel[] }).result || (data as Submodel[]);
   }
 
   /**
@@ -60,7 +63,11 @@ export class BaSyxClient {
   async getSubmodel(id: string): Promise<Submodel> {
     const encodedId = base64UrlEncode(id);
     const response = await this.fetch(`/submodels/${encodedId}`);
-    return response.json();
+    const data = await this.parseJson<Submodel>(response);
+    if (!data) {
+      throw new Error('Empty response when fetching submodel');
+    }
+    return data;
   }
 
   /**
@@ -83,7 +90,11 @@ export class BaSyxClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(submodel),
     });
-    return response.json();
+    const data = await this.parseJson<Submodel>(response);
+    if (data) {
+      return data;
+    }
+    return this.getSubmodel(submodel.id);
   }
 
   /**
@@ -96,7 +107,11 @@ export class BaSyxClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(submodel),
     });
-    return response.json();
+    const data = await this.parseJson<Submodel>(response);
+    if (data) {
+      return data;
+    }
+    return this.getSubmodel(submodel.id);
   }
 
   /**
@@ -136,8 +151,11 @@ export class BaSyxClient {
    */
   async listShells(): Promise<AssetAdministrationShell[]> {
     const response = await this.fetch('/shells');
-    const data = await response.json();
-    return data.result || data;
+    const data = await this.parseJson<unknown>(response);
+    if (!data) {
+      return [];
+    }
+    return (data as { result?: AssetAdministrationShell[] }).result || (data as AssetAdministrationShell[]);
   }
 
   /**
@@ -146,7 +164,11 @@ export class BaSyxClient {
   async getShell(id: string): Promise<AssetAdministrationShell> {
     const encodedId = base64UrlEncode(id);
     const response = await this.fetch(`/shells/${encodedId}`);
-    return response.json();
+    const data = await this.parseJson<AssetAdministrationShell>(response);
+    if (!data) {
+      throw new Error('Empty response when fetching shell');
+    }
+    return data;
   }
 
   /**
@@ -158,7 +180,11 @@ export class BaSyxClient {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(shell),
     });
-    return response.json();
+    const data = await this.parseJson<AssetAdministrationShell>(response);
+    if (data) {
+      return data;
+    }
+    return this.getShell(shell.id);
   }
 
   // ===========================================================================
@@ -170,8 +196,11 @@ export class BaSyxClient {
    */
   async listConceptDescriptions(): Promise<ConceptDescription[]> {
     const response = await this.fetch('/concept-descriptions');
-    const data = await response.json();
-    return data.result || data;
+    const data = await this.parseJson<unknown>(response);
+    if (!data) {
+      return [];
+    }
+    return (data as { result?: ConceptDescription[] }).result || (data as ConceptDescription[]);
   }
 
   /**
@@ -180,7 +209,11 @@ export class BaSyxClient {
   async getConceptDescription(id: string): Promise<ConceptDescription> {
     const encodedId = base64UrlEncode(id);
     const response = await this.fetch(`/concept-descriptions/${encodedId}`);
-    return response.json();
+    const data = await this.parseJson<ConceptDescription>(response);
+    if (!data) {
+      throw new Error('Empty response when fetching concept description');
+    }
+    return data;
   }
 
   // ===========================================================================
@@ -228,8 +261,11 @@ export class BaSyxClient {
    */
   async listRegisteredShells(): Promise<unknown[]> {
     const response = await this.fetchRegistry('/shell-descriptors');
-    const data = await response.json();
-    return data.result || data;
+    const data = await this.parseJson<unknown>(response);
+    if (!data) {
+      return [];
+    }
+    return (data as { result?: unknown[] }).result || (data as unknown[]);
   }
 
   /**
@@ -326,6 +362,14 @@ export class BaSyxClient {
     } finally {
       clearTimeout(timeoutId);
     }
+  }
+
+  private async parseJson<T>(response: Response): Promise<T | undefined> {
+    const text = await response.text();
+    if (!text.trim()) {
+      return undefined;
+    }
+    return JSON.parse(text) as T;
   }
 }
 

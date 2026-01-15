@@ -3,6 +3,9 @@
  * Converts form data back into valid AAS Submodel JSON
  */
 
+import Ajv2019 from 'ajv/dist/2019';
+import addFormats from 'ajv-formats';
+import aasSchema from '../schemas/aas.json';
 import type {
   Submodel,
   SubmodelElement,
@@ -18,6 +21,7 @@ import type {
   DataTypeDefXsd,
   LangStringSet,
   Reference,
+  ModelType,
 } from '@/types/aas';
 import type { ParsedTemplate, ParsedElement } from '../parser/template-parser';
 
@@ -39,6 +43,15 @@ export interface ExportResult {
   json: string;
   warnings: string[];
 }
+
+const ajv = new Ajv2019({ allErrors: true, strict: false });
+addFormats(ajv);
+const schemaId = (aasSchema as Record<string, unknown>).$id as string | undefined;
+const resolvedSchemaId = schemaId || 'https://admin-shell.io/aas/3/0';
+ajv.addSchema(aasSchema as Record<string, unknown>, resolvedSchemaId);
+const validateSubmodelSchemaFn = ajv.compile({
+  $ref: `${resolvedSchemaId}#/definitions/Submodel`,
+} as Record<string, unknown>);
 
 // =============================================================================
 // MAIN EXPORTER
@@ -97,11 +110,23 @@ function convertElement(
   const isContainerType = ['SubmodelElementCollection', 'SubmodelElementList', 'Entity'].includes(
     element.modelType
   );
+  const isArrayElement = element.isArray;
 
   // Skip empty optional elements unless includeEmpty is set
   // But don't skip containers based on their own value - check children instead
-  if (!options.includeEmpty && !element.isRequired && isEmpty(value) && !isContainerType) {
+  if (
+    !options.includeEmpty &&
+    !element.isRequired &&
+    isEmpty(value) &&
+    !isContainerType &&
+    !isArrayElement
+  ) {
     return null;
+  }
+
+  // SubmodelElementList always exports as a list (uses indexed values)
+  if (element.modelType === 'SubmodelElementList') {
+    return convertSML(element, values, options, warnings);
   }
 
   // Handle array elements (cardinality *ToMany)
@@ -119,9 +144,6 @@ function convertElement(
 
     case 'SubmodelElementCollection':
       return convertSMC(element, values, options, warnings);
-
-    case 'SubmodelElementList':
-      return convertSML(element, values, options, warnings);
 
     case 'Range':
       return convertRange(element, value, warnings);
@@ -223,10 +245,38 @@ function convertSML(
   values: Record<string, unknown>,
   options: ExportOptions,
   warnings: string[]
-): SubmodelElementList {
-  const children = (element.children || [])
-    .map((child) => convertElement(child, values, options, warnings))
+): SubmodelElementList | null {
+  const pathKey = element.pathString;
+  const indices = getArrayIndices(values, pathKey);
+  const itemTemplate = element.children?.[0];
+
+  if (!itemTemplate && element.children && element.children.length > 1) {
+    warnings.push(`SubmodelElementList ${pathKey} has multiple template children; using first as list item template.`);
+  }
+
+  const items = indices
+    .map((index) => {
+      if (!itemTemplate) {
+        warnings.push(`SubmodelElementList ${pathKey} missing item template; skipping item ${index}.`);
+        return null;
+      }
+      const scoped = scopeArrayValues(values, pathKey, index);
+      const converted = convertElement(
+        { ...itemTemplate, isArray: false },
+        scoped,
+        options,
+        warnings
+      );
+      return converted;
+    })
     .filter((el): el is SubmodelElement => el !== null);
+
+  if (items.length === 0 && !options.includeEmpty && !element.isRequired) {
+    return null;
+  }
+
+  const listElementType =
+    element.listElementType || itemTemplate?.modelType || 'Property';
 
   return {
     modelType: 'SubmodelElementList',
@@ -234,9 +284,9 @@ function convertSML(
     semanticId: element.semanticId ? createReference(element.semanticId) : undefined,
     description: recordToLangStrings(element.description),
     displayName: recordToLangStrings(element.displayName),
-    typeValueListElement: 'Property',
+    typeValueListElement: listElementType,
     valueTypeListElement: element.valueType,
-    value: children,
+    value: items,
   };
 }
 
@@ -352,24 +402,27 @@ function convertArrayElement(
   values: Record<string, unknown>,
   options: ExportOptions,
   warnings: string[]
-): SubmodelElementList {
-  // For array elements, collect all indexed values
+): SubmodelElementList | null {
+  const pathKey = element.pathString;
+  const indices = getArrayIndices(values, pathKey);
   const items: SubmodelElement[] = [];
-  const pathPrefix = element.pathString;
 
-  // Find all indexed values for this element
-  for (const [key, value] of Object.entries(values)) {
-    if (key.startsWith(pathPrefix + '[') || key.startsWith(pathPrefix + '.')) {
-      // Parse index from key pattern like "path[0]" or "path.0"
-      // This is a simplified approach - real implementation would be more robust
+  for (const index of indices) {
+    const scoped = scopeArrayValues(values, pathKey, index);
+    const item = convertElement({ ...element, isArray: false }, scoped, options, warnings);
+    if (item) items.push(item);
+  }
+
+  if (items.length === 0) {
+    const directValue = values[pathKey];
+    if (directValue !== undefined) {
+      const item = convertElement({ ...element, isArray: false }, values, options, warnings);
+      if (item) items.push(item);
     }
   }
 
-  // If no indexed values found, try to use direct value as single item
-  const directValue = values[pathPrefix];
-  if (directValue !== undefined) {
-    const item = convertElement({ ...element, isArray: false }, values, options, warnings);
-    if (item) items.push(item);
+  if (items.length === 0 && !options.includeEmpty && !element.isRequired) {
+    return null;
   }
 
   return {
@@ -378,7 +431,7 @@ function convertArrayElement(
     semanticId: element.semanticId ? createReference(element.semanticId) : undefined,
     description: recordToLangStrings(element.description),
     displayName: recordToLangStrings(element.displayName),
-    typeValueListElement: element.modelType as any,
+    typeValueListElement: element.modelType,
     valueTypeListElement: element.valueType,
     value: items,
   };
@@ -394,6 +447,47 @@ function isEmpty(value: unknown): boolean {
   if (Array.isArray(value) && value.length === 0) return true;
   if (typeof value === 'object' && Object.keys(value).length === 0) return true;
   return false;
+}
+
+function getArrayIndices(values: Record<string, unknown>, pathKey: string): number[] {
+  const indices = new Set<number>();
+  const prefix = `${pathKey}.`;
+  const pattern = new RegExp(`^${escapeRegExp(prefix)}(\\d+)(?:\\.|$)`);
+
+  for (const key of Object.keys(values)) {
+    const match = key.match(pattern);
+    if (!match) continue;
+    indices.add(Number(match[1]));
+  }
+
+  return Array.from(indices).sort((a, b) => a - b);
+}
+
+// Array values use dot-index path segments, e.g. "SerialNumber.0" or "Address.1.Street".
+function scopeArrayValues(
+  values: Record<string, unknown>,
+  pathKey: string,
+  index: number
+): Record<string, unknown> {
+  const scoped: Record<string, unknown> = {};
+  const prefix = `${pathKey}.${index}`;
+
+  for (const [key, value] of Object.entries(values)) {
+    if (key === prefix) {
+      scoped[pathKey] = value;
+      continue;
+    }
+    if (key.startsWith(prefix + '.')) {
+      const rest = key.slice(prefix.length + 1);
+      scoped[`${pathKey}.${rest}`] = value;
+    }
+  }
+
+  return scoped;
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function formatPropertyValue(value: unknown, valueType?: DataTypeDefXsd): string | undefined {
@@ -500,4 +594,21 @@ export function validateSubmodel(submodel: Submodel): string[] {
   validateElements(submodel.submodelElements, 'root');
 
   return errors;
+}
+
+/**
+ * Validate submodel against the official AAS JSON Schema (v3.0).
+ * The schema is defined for an Environment, so we wrap the submodel.
+ */
+export function validateSubmodelSchema(submodel: Submodel): string[] {
+  const valid = validateSubmodelSchemaFn(submodel);
+  if (valid) return [];
+
+  return (
+    validateSubmodelSchemaFn.errors?.map((err) => {
+      const path = err.instancePath || err.schemaPath || 'schema';
+      const message = err.message || 'validation error';
+      return `${path}: ${message}`;
+    }) ?? ['Schema validation failed']
+  );
 }

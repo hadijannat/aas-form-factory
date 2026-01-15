@@ -18,6 +18,7 @@ import type {
   DataTypeDefXsd,
   Cardinality,
   LangStringSet,
+  ModelType,
 } from '@/types/aas';
 import { getSemanticIdValue, getCardinality, isRequired, isMultiple } from '@/types/aas';
 
@@ -46,7 +47,8 @@ export interface ParsedElement {
   idShort: string;
   path: string[];
   pathString: string;
-  modelType: string;
+  modelType: ModelType;
+  listElementType?: ModelType;
   semanticId?: string;
   cardinality: Cardinality;
   isRequired: boolean;
@@ -249,6 +251,7 @@ function parseSML(
     ...base,
     inputType: 'list',
     valueType: element.valueTypeListElement,
+    listElementType: element.typeValueListElement,
     children: element.value ? parseElements(element.value, path) : [],
   };
 }

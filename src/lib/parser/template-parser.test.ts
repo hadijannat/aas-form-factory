@@ -133,6 +133,7 @@ const submodelWithMixedTypes: Submodel = {
     {
       modelType: 'File',
       idShort: 'FileProp',
+      contentType: 'application/octet-stream',
     },
   ],
 };

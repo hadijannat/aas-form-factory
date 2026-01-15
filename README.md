@@ -1,256 +1,104 @@
-# IDTA Form Studio
+# AAS Form Factory
 
-A dynamic form generator for IDTA Submodel Templates with Asset Administration Shell (AAS) V3.0 compliance.
+Dynamic form generation for IDTA Submodel Templates with Asset Administration Shell (AAS) v3.0 JSON output.
 
 ## Overview
 
-IDTA Form Studio automatically generates user-friendly forms from standardized IDTA Submodel Templates, enabling non-technical users to create valid AAS Submodel Instances without knowledge of the underlying JSON structure.
+AAS Form Factory parses official IDTA Submodel Template JSON files and renders a fully dynamic form UI for AAS Submodel Instances. It enforces cardinality and XSD value types, supports multilingual properties, and exports validated AAS JSON.
 
-**Key Features:**
-- Dynamic form rendering from any IDTA template
-- Complete AAS V3.0 type system (13 SubmodelElement types)
-- Export to valid AAS JSON and AASX packages
-- Docker-based BaSyx integration for persistence
-- Industrial-grade UI with dark mode support
+## Key Features
+
+- Parse IDTA Submodel Templates and extract all SubmodelElements
+- Render all 13 AAS SubmodelElement types
+- Enforce cardinality (One, ZeroToOne, OneToMany, ZeroToMany)
+- Validate inputs against XSD valueTypes (xs:string, xs:integer, xs:anyURI, xs:date, etc.)
+- Export valid AAS JSON (Spec Part 1 v3.0) with schema validation
+- Multi-language properties with add/remove language entries
+- Optional BaSyx integration for create/read/update
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- pnpm (or npm/yarn)
-- Docker & Docker Compose (for BaSyx integration)
-
-### Installation
+See `QUICKSTART.md` for a 5‑minute setup.
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/aas-form-factory.git
-cd aas-form-factory
-
-# Install dependencies
 pnpm install
-
-# Start development server
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to access the application.
-
-### With BaSyx Backend
-
-```bash
-# Start BaSyx services
-docker-compose up -d
-
-# Verify services are running
-curl http://localhost:4000/registry/api/v3.0/shell-descriptors
-curl http://localhost:4001/aas-environment/api/v3.0/submodels
-```
+Open http://localhost:3000
 
 ## Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router pages
-│   ├── page.tsx           # Template selector home
-│   └── templates/[id]/    # Dynamic form pages
-├── components/
-│   ├── form/              # AAS form components
-│   ├── layout/            # App layout components
-│   └── ui/                # shadcn/ui primitives
+├── app/                    # Next.js routes
+├── components/             # UI + form components
 ├── lib/
-│   ├── parser/            # Template parser
-│   ├── catalog/           # json-render catalog
-│   ├── renderer/          # Form renderer
-│   ├── exporters/         # JSON/AASX export
-│   └── api/               # BaSyx client
-└── types/
-    └── aas.ts             # AAS V3.0 type definitions
-```
-
-## Usage
-
-### Loading a Template
-
-```typescript
-import { fetchTemplate, parseSubmodelTemplate } from '@/lib/parser';
-
-// Fetch and parse a template
-const template = await fetchTemplate('IDTA-02006-3-0');
-const parsed = parseSubmodelTemplate(template);
-```
-
-### Rendering a Form
-
-```tsx
-import { IDTAFormRenderer } from '@/lib/renderer';
-
-<IDTAFormRenderer
-  template={parsed}
-  initialValues={{}}
-  onSubmit={(values) => console.log(values)}
-/>
-```
-
-### Exporting Data
-
-```typescript
-import { exportToSubmodel } from '@/lib/exporters/aas-exporter';
-import { createAASXPackage } from '@/lib/exporters/aasx-exporter';
-
-// Export to JSON
-const result = exportToSubmodel(template, formValues);
-console.log(result.json);
-
-// Export to AASX package
-const aasx = await createAASXPackage(result.submodel);
-```
-
-### Saving to BaSyx
-
-```typescript
-import { basyxClient } from '@/lib/api/basyx-client';
-
-// Create a new submodel instance
-await basyxClient.createSubmodel(result.submodel);
-
-// List all submodels
-const submodels = await basyxClient.listSubmodels();
+│   ├── api/                # BaSyx client
+│   ├── exporters/          # AAS JSON export
+│   ├── importers/          # Submodel instance import
+│   ├── parser/             # Template parser
+│   └── renderer/           # Form renderer + validation
+└── types/                  # AAS v3.0 types
 ```
 
 ## Supported Templates
 
-| Template | IDTA ID | Status |
-|----------|---------|--------|
-| Digital Nameplate | IDTA 02006-3-0 | Supported |
-| Contact Information | IDTA 02002-1-0 | Supported |
-| Technical Data | IDTA 02003-1-2 | Supported |
-| Handover Documentation | IDTA 02004-2-0 | Supported |
-| Carbon Footprint | IDTA 02029-1-0 | Planned |
+| Template | IDTA ID |
+|----------|---------|
+| Digital Nameplate | IDTA 02006-2-0 |
+| Contact Information | IDTA 02002-1-0 |
+| Technical Data | IDTA 02003-1-2 |
+| Handover Documentation | IDTA 02004-1-2 |
+| Carbon Footprint | IDTA 02023-1-0 |
 
-## AAS Element Types
-
-The form generator supports all 13 AAS V3.0 SubmodelElement types:
-
-| Element Type | Input Component |
-|--------------|-----------------|
-| Property | TextInput, NumberInput, DateInput, etc. |
-| MultiLanguageProperty | MultiLanguageInput |
-| SubmodelElementCollection | SMCContainer |
-| SubmodelElementList | ArrayContainer |
-| Range | RangeInput |
-| File | FileInput |
-| Blob | FileInput |
-| ReferenceElement | ReferenceInput |
-| Entity | EntityContainer |
-| Operation | Read-only display |
-| Capability | Read-only display |
-| BasicEventElement | Read-only display |
-| RelationshipElement | Read-only display |
-
-## Configuration
-
-### Environment Variables
+## Scripts
 
 ```bash
-# BaSyx Registry URL
-BASYX_REGISTRY_URL=http://localhost:4000/registry/api/v3.0
-
-# BaSyx AAS Environment URL
-BASYX_ENV_URL=http://localhost:4001/aas-environment/api/v3.0
+pnpm dev          # Start dev server
+pnpm lint         # ESLint
+pnpm type-check   # TypeScript strict check
+pnpm test         # Vitest (watch)
+pnpm test:ci      # Vitest (run once)
 ```
 
-### Docker Services
+## BaSyx Integration
 
-| Service | Port | Description |
-|---------|------|-------------|
-| BaSyx Registry | 4000 | AAS Shell Descriptor Registry |
-| BaSyx Environment | 4001 | Submodel Repository |
-| MongoDB | 27017 | Persistence layer |
-
-## Development
+Start BaSyx via Docker Compose:
 
 ```bash
-# Run development server
-pnpm dev
+docker compose -f docker/docker-compose.yml up -d
+```
 
-# Run tests
-pnpm test
+Integration test (requires BaSyx running):
 
-# Type check
-pnpm type-check
+```bash
+BASYX_INTEGRATION=1 pnpm vitest run -- src/lib/api/basyx-client.integration.test.ts
+```
 
-# Build for production
-pnpm build
+## Environment Variables
+
+```bash
+BASYX_REGISTRY_URL=http://localhost:4000
+BASYX_ENVIRONMENT_URL=http://localhost:4001
 ```
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    IDTA FORM STUDIO                      │
-├─────────────────────────────────────────────────────────┤
-│  Template Fetch → Parser → UI Tree → Form Renderer      │
-│                                           ↓              │
-│                                      Form Values         │
-│                                           ↓              │
-│                        AAS Exporter → JSON/AASX         │
-│                                           ↓              │
-│                                    BaSyx Client         │
-└─────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────┐
-│                    DOCKER STACK                          │
-│  BaSyx Registry (4000) ← → BaSyx Environment (4001)     │
-│                              ↓                           │
-│                         MongoDB (27017)                  │
-└─────────────────────────────────────────────────────────┘
+Template JSON
+   │
+   ▼
+Parser → UI Tree → Form Renderer → Form Values
+                               │
+                               ▼
+                        AAS JSON Exporter
+                               │
+                               ▼
+                        BaSyx Client (optional)
 ```
 
-## API Reference
+## Documentation
 
-### Template Parser
-
-```typescript
-parseSubmodelTemplate(submodel: Submodel): ParsedTemplate
-findElementByPath(template: ParsedTemplate, path: string): ParsedElement | undefined
-extractSemanticIds(template: ParsedTemplate): string[]
-getRequiredElements(template: ParsedTemplate): ParsedElement[]
-```
-
-### Exporter
-
-```typescript
-exportToSubmodel(template: ParsedTemplate, values: Record<string, unknown>, options?: ExportOptions): ExportResult
-validateSubmodel(submodel: Submodel): string[]
-createAASXPackage(submodel: Submodel): Promise<Blob>
-```
-
-### BaSyx Client
-
-```typescript
-basyxClient.createSubmodel(submodel: Submodel): Promise<void>
-basyxClient.getSubmodel(id: string): Promise<Submodel>
-basyxClient.listSubmodels(): Promise<Submodel[]>
-basyxClient.updateSubmodel(id: string, submodel: Submodel): Promise<void>
-basyxClient.deleteSubmodel(id: string): Promise<void>
-```
-
-## Testing
-
-```bash
-# Run all tests
-pnpm test
-
-# Run tests in watch mode
-pnpm test:watch
-
-# Run with coverage
-pnpm test:coverage
-```
-
-## License
-
-MIT
+- `QUICKSTART.md` - 5‑minute setup
+- `DEVELOPER_GUIDE.md` - architecture + extension guide

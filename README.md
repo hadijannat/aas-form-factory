@@ -56,12 +56,12 @@ Use it to:
 
 ```mermaid
 flowchart LR
-  A[IDTA Template JSON] --> B[Template Parser]
-  B --> C[UI Tree]
-  C --> D[Form Renderer]
-  D --> E[Form State + Validation]
-  E --> F[AAS JSON Exporter]
-  F --> G[BaSyx Client (optional)]
+  A["IDTA Template JSON"] --> B["Template Parser"]
+  B --> C["UI Tree"]
+  C --> D["Form Renderer"]
+  D --> E["Form State + Validation"]
+  E --> F["AAS JSON Exporter"]
+  F --> G["BaSyx Client (optional)"]
 ```
 
 ## Key features

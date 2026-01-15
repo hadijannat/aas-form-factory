@@ -1,36 +1,256 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# IDTA Form Studio
 
-## Getting Started
+A dynamic form generator for IDTA Submodel Templates with Asset Administration Shell (AAS) V3.0 compliance.
 
-First, run the development server:
+## Overview
+
+IDTA Form Studio automatically generates user-friendly forms from standardized IDTA Submodel Templates, enabling non-technical users to create valid AAS Submodel Instances without knowledge of the underlying JSON structure.
+
+**Key Features:**
+- Dynamic form rendering from any IDTA template
+- Complete AAS V3.0 type system (13 SubmodelElement types)
+- Export to valid AAS JSON and AASX packages
+- Docker-based BaSyx integration for persistence
+- Industrial-grade UI with dark mode support
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm (or npm/yarn)
+- Docker & Docker Compose (for BaSyx integration)
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Clone the repository
+git clone https://github.com/your-org/aas-form-factory.git
+cd aas-form-factory
+
+# Install dependencies
+pnpm install
+
+# Start development server
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to access the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### With BaSyx Backend
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Start BaSyx services
+docker-compose up -d
 
-## Learn More
+# Verify services are running
+curl http://localhost:4000/registry/api/v3.0/shell-descriptors
+curl http://localhost:4001/aas-environment/api/v3.0/submodels
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── page.tsx           # Template selector home
+│   └── templates/[id]/    # Dynamic form pages
+├── components/
+│   ├── form/              # AAS form components
+│   ├── layout/            # App layout components
+│   └── ui/                # shadcn/ui primitives
+├── lib/
+│   ├── parser/            # Template parser
+│   ├── catalog/           # json-render catalog
+│   ├── renderer/          # Form renderer
+│   ├── exporters/         # JSON/AASX export
+│   └── api/               # BaSyx client
+└── types/
+    └── aas.ts             # AAS V3.0 type definitions
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Usage
 
-## Deploy on Vercel
+### Loading a Template
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```typescript
+import { fetchTemplate, parseSubmodelTemplate } from '@/lib/parser';
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+// Fetch and parse a template
+const template = await fetchTemplate('IDTA-02006-3-0');
+const parsed = parseSubmodelTemplate(template);
+```
+
+### Rendering a Form
+
+```tsx
+import { IDTAFormRenderer } from '@/lib/renderer';
+
+<IDTAFormRenderer
+  template={parsed}
+  initialValues={{}}
+  onSubmit={(values) => console.log(values)}
+/>
+```
+
+### Exporting Data
+
+```typescript
+import { exportToSubmodel } from '@/lib/exporters/aas-exporter';
+import { createAASXPackage } from '@/lib/exporters/aasx-exporter';
+
+// Export to JSON
+const result = exportToSubmodel(template, formValues);
+console.log(result.json);
+
+// Export to AASX package
+const aasx = await createAASXPackage(result.submodel);
+```
+
+### Saving to BaSyx
+
+```typescript
+import { basyxClient } from '@/lib/api/basyx-client';
+
+// Create a new submodel instance
+await basyxClient.createSubmodel(result.submodel);
+
+// List all submodels
+const submodels = await basyxClient.listSubmodels();
+```
+
+## Supported Templates
+
+| Template | IDTA ID | Status |
+|----------|---------|--------|
+| Digital Nameplate | IDTA 02006-3-0 | Supported |
+| Contact Information | IDTA 02002-1-0 | Supported |
+| Technical Data | IDTA 02003-1-2 | Supported |
+| Handover Documentation | IDTA 02004-2-0 | Supported |
+| Carbon Footprint | IDTA 02029-1-0 | Planned |
+
+## AAS Element Types
+
+The form generator supports all 13 AAS V3.0 SubmodelElement types:
+
+| Element Type | Input Component |
+|--------------|-----------------|
+| Property | TextInput, NumberInput, DateInput, etc. |
+| MultiLanguageProperty | MultiLanguageInput |
+| SubmodelElementCollection | SMCContainer |
+| SubmodelElementList | ArrayContainer |
+| Range | RangeInput |
+| File | FileInput |
+| Blob | FileInput |
+| ReferenceElement | ReferenceInput |
+| Entity | EntityContainer |
+| Operation | Read-only display |
+| Capability | Read-only display |
+| BasicEventElement | Read-only display |
+| RelationshipElement | Read-only display |
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# BaSyx Registry URL
+BASYX_REGISTRY_URL=http://localhost:4000/registry/api/v3.0
+
+# BaSyx AAS Environment URL
+BASYX_ENV_URL=http://localhost:4001/aas-environment/api/v3.0
+```
+
+### Docker Services
+
+| Service | Port | Description |
+|---------|------|-------------|
+| BaSyx Registry | 4000 | AAS Shell Descriptor Registry |
+| BaSyx Environment | 4001 | Submodel Repository |
+| MongoDB | 27017 | Persistence layer |
+
+## Development
+
+```bash
+# Run development server
+pnpm dev
+
+# Run tests
+pnpm test
+
+# Type check
+pnpm type-check
+
+# Build for production
+pnpm build
+```
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    IDTA FORM STUDIO                      │
+├─────────────────────────────────────────────────────────┤
+│  Template Fetch → Parser → UI Tree → Form Renderer      │
+│                                           ↓              │
+│                                      Form Values         │
+│                                           ↓              │
+│                        AAS Exporter → JSON/AASX         │
+│                                           ↓              │
+│                                    BaSyx Client         │
+└─────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────┐
+│                    DOCKER STACK                          │
+│  BaSyx Registry (4000) ← → BaSyx Environment (4001)     │
+│                              ↓                           │
+│                         MongoDB (27017)                  │
+└─────────────────────────────────────────────────────────┘
+```
+
+## API Reference
+
+### Template Parser
+
+```typescript
+parseSubmodelTemplate(submodel: Submodel): ParsedTemplate
+findElementByPath(template: ParsedTemplate, path: string): ParsedElement | undefined
+extractSemanticIds(template: ParsedTemplate): string[]
+getRequiredElements(template: ParsedTemplate): ParsedElement[]
+```
+
+### Exporter
+
+```typescript
+exportToSubmodel(template: ParsedTemplate, values: Record<string, unknown>, options?: ExportOptions): ExportResult
+validateSubmodel(submodel: Submodel): string[]
+createAASXPackage(submodel: Submodel): Promise<Blob>
+```
+
+### BaSyx Client
+
+```typescript
+basyxClient.createSubmodel(submodel: Submodel): Promise<void>
+basyxClient.getSubmodel(id: string): Promise<Submodel>
+basyxClient.listSubmodels(): Promise<Submodel[]>
+basyxClient.updateSubmodel(id: string, submodel: Submodel): Promise<void>
+basyxClient.deleteSubmodel(id: string): Promise<void>
+```
+
+## Testing
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run with coverage
+pnpm test:coverage
+```
+
+## License
+
+MIT

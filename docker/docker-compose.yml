@@ -1,0 +1,136 @@
+version: "3.8"
+
+# =============================================================================
+# IDTA Form Studio - BaSyx AAS Infrastructure Stack
+# =============================================================================
+#
+# Services:
+#   - BaSyx AAS Registry (port 4000): AAS discovery and registration
+#   - BaSyx AAS Environment (port 4001): Submodel storage and API
+#   - MongoDB (port 27017): Persistence layer
+#
+# Usage:
+#   docker-compose up -d        # Start all services
+#   docker-compose down         # Stop all services
+#   docker-compose logs -f      # View logs
+#
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # MongoDB - Persistence Layer
+  # ---------------------------------------------------------------------------
+  mongodb:
+    image: mongo:7.0
+    container_name: aas-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - aas-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # BaSyx AAS Registry - Discovery Service
+  # ---------------------------------------------------------------------------
+  aas-registry:
+    image: eclipsebasyx/aas-registry-log-mongodb:2.0.0-milestone-03
+    container_name: aas-registry
+    ports:
+      - "4000:8080"
+    environment:
+      BASYX_BACKEND: MongoDB
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: aas_registry
+      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
+      SPRING_DATA_MONGODB_USERNAME: admin
+      SPRING_DATA_MONGODB_PASSWORD: admin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - aas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/shell-descriptors"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # BaSyx AAS Environment - Main AAS API
+  # ---------------------------------------------------------------------------
+  aas-environment:
+    image: eclipsebasyx/aas-environment:2.0.0-milestone-03
+    container_name: aas-environment
+    ports:
+      - "4001:8081"
+    environment:
+      BASYX_BACKEND: MongoDB
+      SPRING_DATA_MONGODB_HOST: mongodb
+      SPRING_DATA_MONGODB_PORT: 27017
+      SPRING_DATA_MONGODB_DATABASE: aas_environment
+      SPRING_DATA_MONGODB_AUTHENTICATION_DATABASE: admin
+      SPRING_DATA_MONGODB_USERNAME: admin
+      SPRING_DATA_MONGODB_PASSWORD: admin
+      # AAS Registry integration
+      BASYX_AASREPOSITORY_FEATURE_REGISTRYINTEGRATION: http://aas-registry:8080
+      BASYX_SUBMODELREPOSITORY_FEATURE_REGISTRYINTEGRATION: http://aas-registry:8080
+      # CORS configuration for frontend
+      BASYX_CORS_ALLOWED_ORIGINS: "*"
+      BASYX_CORS_ALLOWED_METHODS: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      aas-registry:
+        condition: service_started
+    networks:
+      - aas-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/submodels"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # BaSyx AAS Web UI (Optional) - Visual inspection tool
+  # ---------------------------------------------------------------------------
+  aas-web-ui:
+    image: eclipsebasyx/aas-gui:v2-240801
+    container_name: aas-web-ui
+    ports:
+      - "3001:3000"
+    environment:
+      VITE_REGISTRY_PATH: http://localhost:4000
+      VITE_AAS_REPO_PATH: http://localhost:4001/shells
+      VITE_SUBMODEL_REPO_PATH: http://localhost:4001/submodels
+      VITE_CD_REPO_PATH: http://localhost:4001/concept-descriptions
+    depends_on:
+      - aas-environment
+    networks:
+      - aas-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  mongodb_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  aas-network:
+    driver: bridge

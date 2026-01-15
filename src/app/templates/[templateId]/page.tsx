@@ -17,11 +17,11 @@ import { exportToSubmodel, validateSubmodelSchema } from '@/lib/exporters/aas-ex
 import { exportToAASX } from '@/lib/exporters/aasx-exporter';
 import { parseSubmodelTemplate } from '@/lib/parser/template-parser';
 import {
-  listTemplates,
   fetchTemplateById,
   extractSubmodel,
   type TemplateCatalogEntry,
 } from '@/lib/parser/template-fetcher';
+import { useTemplateCatalog } from '@/hooks/use-template-catalog';
 import type { Submodel } from '@/types/aas';
 import type { FormActions } from '@/lib/renderer/IDTAFormRenderer';
 import { importSubmodelValues } from '@/lib/importers/submodel-importer';
@@ -67,7 +67,7 @@ export default function TemplatePage() {
   const submodelId = searchParams.get('submodelId');
 
   // State
-  const [templates, setTemplates] = React.useState<TemplateCatalogEntry[]>([]);
+  const { templates, isLoading: isTemplateListLoading } = useTemplateCatalog();
   const [submodel, setSubmodel] = React.useState<Submodel | null>(null);
   const [formValues, setFormValues] = React.useState<Record<string, unknown>>({});
   const [initialValues, setInitialValues] = React.useState<Record<string, unknown>>({});
@@ -79,18 +79,7 @@ export default function TemplatePage() {
   const [isSaving, setIsSaving] = React.useState(false);
   const formActionsRef = React.useRef<FormActions | null>(null);
 
-  // Load all templates for sidebar
-  React.useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const templateList = listTemplates();
-        setTemplates(templateList);
-      } catch (err) {
-        console.error('Failed to load templates:', err);
-      }
-    };
-    loadTemplates();
-  }, []);
+  // Template list is loaded via useTemplateCatalog hook.
 
   // Load the selected template
   React.useEffect(() => {
@@ -321,6 +310,7 @@ export default function TemplatePage() {
         selectedTemplateId={templateId}
         onTemplateSelect={handleTemplateSelect}
         isCollapsed={sidebarCollapsed}
+        isLoading={isTemplateListLoading}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 

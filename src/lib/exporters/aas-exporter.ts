@@ -32,6 +32,8 @@ import type { ParsedTemplate, ParsedElement } from '../parser/template-parser';
 export interface ExportOptions {
   /** Include empty optional fields */
   includeEmpty?: boolean;
+  /** Include empty container sections (SMC/SML/Entity) */
+  includeEmptyContainers?: boolean;
   /** Pretty print JSON output */
   prettyPrint?: boolean;
   /** Generate unique IDs for submodel */
@@ -225,8 +227,10 @@ function convertSMC(
     .map((child) => convertElement(child, values, options, warnings))
     .filter((el): el is SubmodelElement => el !== null);
 
-  // Skip empty collections when includeEmpty is false (unless required)
-  if (!options.includeEmpty && !element.isRequired && children.length === 0) {
+  const includeEmptyContainers = shouldIncludeEmptyContainers(options);
+
+  // Skip empty collections when includeEmptyContainers is false (unless required)
+  if (!includeEmptyContainers && !element.isRequired && children.length === 0) {
     return null;
   }
 
@@ -271,7 +275,9 @@ function convertSML(
     })
     .filter((el): el is SubmodelElement => el !== null);
 
-  if (items.length === 0 && !options.includeEmpty && !element.isRequired) {
+  const includeEmptyContainers = shouldIncludeEmptyContainers(options);
+
+  if (items.length === 0 && !includeEmptyContainers && !element.isRequired) {
     return null;
   }
 
@@ -381,10 +387,16 @@ function convertEntity(
   values: Record<string, unknown>,
   options: ExportOptions,
   warnings: string[]
-): Entity {
+): Entity | null {
   const statements = (element.children || [])
     .map((child) => convertElement(child, values, options, warnings))
     .filter((el): el is SubmodelElement => el !== null);
+
+  const includeEmptyContainers = shouldIncludeEmptyContainers(options);
+
+  if (!includeEmptyContainers && !element.isRequired && statements.length === 0) {
+    return null;
+  }
 
   return {
     modelType: 'Entity',
@@ -421,7 +433,9 @@ function convertArrayElement(
     }
   }
 
-  if (items.length === 0 && !options.includeEmpty && !element.isRequired) {
+  const includeEmptyContainers = shouldIncludeEmptyContainers(options);
+
+  if (items.length === 0 && !includeEmptyContainers && !element.isRequired) {
     return null;
   }
 
@@ -447,6 +461,16 @@ function isEmpty(value: unknown): boolean {
   if (Array.isArray(value) && value.length === 0) return true;
   if (typeof value === 'object' && Object.keys(value).length === 0) return true;
   return false;
+}
+
+function shouldIncludeEmptyContainers(options: ExportOptions): boolean {
+  if (options.includeEmptyContainers !== undefined) {
+    return options.includeEmptyContainers;
+  }
+  if (options.includeEmpty !== undefined) {
+    return options.includeEmpty;
+  }
+  return true;
 }
 
 function getArrayIndices(values: Record<string, unknown>, pathKey: string): number[] {

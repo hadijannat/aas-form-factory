@@ -96,6 +96,10 @@ function SpinnerIcon({ className }: { className?: string }) {
 
 function getCategoryColor(category?: string): string {
   switch (category?.toLowerCase()) {
+    case 'published':
+      return 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200';
+    case 'deprecated':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
     case 'identification':
       return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
     case 'documentation':
@@ -149,6 +153,8 @@ export function TemplateBrowser({
   }, [filteredTemplates]);
 
   const categoryOrder = [
+    'Published',
+    'Deprecated',
     'Identification',
     'Documentation',
     'Technical',
@@ -157,9 +163,16 @@ export function TemplateBrowser({
     'Other',
   ];
 
-  const sortedCategories = Object.keys(groupedTemplates).sort(
-    (a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b)
-  );
+  const sortedCategories = Object.keys(groupedTemplates).sort((a, b) => {
+    const aIndex = categoryOrder.indexOf(a);
+    const bIndex = categoryOrder.indexOf(b);
+    const normalizedA = aIndex === -1 ? categoryOrder.length : aIndex;
+    const normalizedB = bIndex === -1 ? categoryOrder.length : bIndex;
+    if (normalizedA !== normalizedB) {
+      return normalizedA - normalizedB;
+    }
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="flex flex-col h-full">
@@ -172,6 +185,7 @@ export function TemplateBrowser({
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            id="template-search"
             className="pl-10"
           />
         </div>

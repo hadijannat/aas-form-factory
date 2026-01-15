@@ -12,7 +12,8 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { listTemplates, type TemplateCatalogEntry } from '@/lib/parser/template-fetcher';
+import { type TemplateCatalogEntry } from '@/lib/parser/template-fetcher';
+import { useTemplateCatalog } from '@/hooks/use-template-catalog';
 
 // =============================================================================
 // ICONS
@@ -87,25 +88,13 @@ const FEATURED_TEMPLATES = [
 
 export default function HomePage() {
   const router = useRouter();
-  const [templates, setTemplates] = React.useState<TemplateCatalogEntry[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { templates, isLoading } = useTemplateCatalog();
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(true);
   const [connectionStatus, setConnectionStatus] = React.useState<'connected' | 'disconnected' | 'checking'>('checking');
 
-  // Load templates
-  React.useEffect(() => {
-    const loadTemplates = async () => {
-      try {
-        const templateList = listTemplates();
-        setTemplates(templateList);
-      } catch (error) {
-        console.error('Failed to load templates:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadTemplates();
-  }, []);
+  const handleBrowseAll = () => {
+    router.push('/templates');
+  };
 
   // Check BaSyx connection
   React.useEffect(() => {
@@ -201,7 +190,7 @@ export default function HomePage() {
               <h2 className="text-2xl font-semibold">Featured Templates</h2>
               <Button
                 variant="ghost"
-                onClick={() => setSidebarCollapsed(false)}
+                onClick={handleBrowseAll}
               >
                 Browse All
                 <ArrowRightIcon className="h-4 w-4 ml-2" />

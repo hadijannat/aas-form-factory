@@ -16,7 +16,7 @@ import {
  */
 export async function GET() {
   try {
-    const templates = listTemplates();
+    const templates = await listTemplates();
     return NextResponse.json({ templates });
   } catch (error) {
     console.error('Error listing templates:', error);

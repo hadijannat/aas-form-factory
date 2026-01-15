@@ -15,14 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  InfoIcon,
-  PlusIcon,
-  TrashIcon,
-  GripVerticalIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-} from 'lucide-react';
+import { InfoIcon, PlusIcon, TrashIcon, ChevronUpIcon, ChevronDownIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   type BaseFormProps,

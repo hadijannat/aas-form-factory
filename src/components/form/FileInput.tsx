@@ -46,13 +46,6 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getFileIcon(contentType?: string) {
-  if (!contentType) return FileIcon;
-  if (contentType.startsWith('image/')) return ImageIcon;
-  if (contentType.startsWith('text/') || contentType.includes('pdf')) return FileTextIcon;
-  return FileIcon;
-}
-
 export function FileInput({
   value,
   contentType,
@@ -135,7 +128,16 @@ export function FileInput({
   }, [previewUrl]);
 
   const displayError = error || localError;
-  const FileIconComponent = getFileIcon(value?.contentType);
+  const renderFileIcon = () => {
+    if (!value?.contentType) return <FileIcon className="h-8 w-8 text-muted-foreground" />;
+    if (value.contentType.startsWith('image/')) {
+      return <ImageIcon className="h-8 w-8 text-muted-foreground" />;
+    }
+    if (value.contentType.startsWith('text/') || value.contentType.includes('pdf')) {
+      return <FileTextIcon className="h-8 w-8 text-muted-foreground" />;
+    }
+    return <FileIcon className="h-8 w-8 text-muted-foreground" />;
+  };
 
   const renderLabel = () => {
     if (!showLabel || labelPosition === 'hidden') return null;
@@ -190,7 +192,7 @@ export function FileInput({
               />
             ) : (
               <div className="h-16 w-16 bg-muted rounded border flex items-center justify-center">
-                <FileIconComponent className="h-8 w-8 text-muted-foreground" />
+                {renderFileIcon()}
               </div>
             )}
 

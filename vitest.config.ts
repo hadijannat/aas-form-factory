@@ -24,10 +24,12 @@ export default defineConfig({
         'src/lib/schemas/**',
         'src/lib/exporters/aasx-exporter.ts',
       ],
-      lines: 70,
-      functions: 70,
-      statements: 70,
-      branches: 70,
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        statements: 70,
+        branches: 70,
+      },
     },
   },
   resolve: {

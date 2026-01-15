@@ -116,6 +116,8 @@ export function Sidebar({
               size="icon"
               onClick={onToggleCollapse}
               className="h-8 w-8"
+              aria-label="Collapse template sidebar"
+              title="Collapse template sidebar"
             >
               <ChevronLeftIcon className="h-4 w-4" />
             </Button>
@@ -138,6 +140,8 @@ export function Sidebar({
           size="icon"
           onClick={onToggleCollapse}
           className="fixed left-4 top-20 z-50 h-10 w-10 rounded-full shadow-md"
+          aria-label="Open template sidebar"
+          title="Open template sidebar"
         >
           <ListIcon className="h-4 w-4" />
         </Button>

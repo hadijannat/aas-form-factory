@@ -1,5 +1,8 @@
 # AAS Form Factory
 
+![CI](https://github.com/hadijannat/aas-form-factory/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-%E2%89%A570%25-brightgreen)
+
 Dynamic form generation for IDTA Submodel Templates with Asset Administration Shell (AAS) v3.0 JSON output.
 
 ## Overview

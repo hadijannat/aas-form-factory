@@ -12,7 +12,11 @@
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:ci": "vitest run",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test --grep @a11y",
+    "test:responsive": "playwright test --grep @responsive",
+    "lhci:autorun": "pnpm build && lhci autorun"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.0",
@@ -54,6 +58,9 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -63,8 +70,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^2.1.9",
     "eslint": "^9",
     "eslint-config-next": "16.1.2",
+    "happy-dom": "^20.3.0",
     "jsdom": "^27.4.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.4.0",

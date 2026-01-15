@@ -5,11 +5,66 @@
 
 Dynamic form generation for IDTA Submodel Templates with Asset Administration Shell (AAS) v3.0 JSON output.
 
-## Overview
+## What this app does
 
-AAS Form Factory parses official IDTA Submodel Template JSON files and renders a fully dynamic form UI for AAS Submodel Instances. It enforces cardinality and XSD value types, supports multilingual properties, and exports validated AAS JSON.
+If you have an official IDTA Submodel Template (JSON), AAS Form Factory turns it into a working form you can fill out, validate, and export as a proper AAS Submodel Instance. It understands cardinality, value types, multilingual fields, and optional BaSyx storage.
 
-## Key Features
+Use it to:
+- Rapidly generate forms for IDTA templates
+- Validate values as you type
+- Export AAS JSON that conforms to Spec Part 1 v3.0
+- Create/update submodels in BaSyx (optional)
+
+## Visual walkthrough (UI map + flow)
+
+### Screen layout (mental model)
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ IDTA Form Studio         JSON   AASX   Save to BaSyx          │
+├───────────────┬──────────────────────────────────────────────┤
+│ Templates     │ Form (dynamic sections + fields)             │
+│ - Nameplate   │ - Section header                              │
+│ - Technical   │   - Field label    [input]  (errors here)     │
+│ - Carbon      │   - Multi-language  [+ Add language]          │
+│ ...           │   - Array item      [+ Add item]              │
+│               │   - File input      [Upload]                  │
+└───────────────┴──────────────────────────────────────────────┘
+```
+
+### 6-step walkthrough
+
+1) Pick a template  
+   Open the app and choose a template from the left sidebar.
+
+2) Fill the generated form  
+   Fields appear based on the template structure. Required fields are marked and validated.
+
+3) Add multi-language values  
+   Use “Add language” to add translations for multi-language properties.
+
+4) Add array items or nested elements  
+   For OneToMany/ZeroToMany, you can add or remove items dynamically.
+
+5) Upload files (when the template uses File elements)  
+   The UI accepts files and keeps metadata for export.
+
+6) Export or Save  
+   Export as JSON or send to BaSyx if configured.
+
+## How it works (data flow)
+
+```mermaid
+flowchart LR
+  A[IDTA Template JSON] --> B[Template Parser]
+  B --> C[UI Tree]
+  C --> D[Form Renderer]
+  D --> E[Form State + Validation]
+  E --> F[AAS JSON Exporter]
+  F --> G[BaSyx Client (optional)]
+```
+
+## Key features
 
 - Parse IDTA Submodel Templates and extract all SubmodelElements
 - Render all 13 AAS SubmodelElement types
@@ -19,7 +74,17 @@ AAS Form Factory parses official IDTA Submodel Template JSON files and renders a
 - Multi-language properties with add/remove language entries
 - Optional BaSyx integration for create/read/update
 
-## Quick Start
+## Supported templates
+
+| Template | IDTA ID |
+|----------|---------|
+| Digital Nameplate | IDTA 02006-2-0 |
+| Contact Information | IDTA 02002-1-0 |
+| Technical Data | IDTA 02003-1-2 |
+| Handover Documentation | IDTA 02004-1-2 |
+| Carbon Footprint | IDTA 02023-1-0 |
+
+## Quick start
 
 See `QUICKSTART.md` for a 5‑minute setup.
 
@@ -30,7 +95,50 @@ pnpm dev
 
 Open http://localhost:3000
 
-## Project Structure
+## Everyday tasks
+
+```text
+Export JSON:   Click "JSON" to download a Submodel Instance.
+AASX export:   Out of scope for v1.0 (button may appear but is not supported).
+Save to BaSyx: Click "Save to BaSyx" to POST the submodel (requires BaSyx running).
+```
+
+## Scripts
+
+```bash
+pnpm dev             # Start dev server
+pnpm lint            # ESLint
+pnpm type-check      # TypeScript strict check
+pnpm test            # Vitest (watch)
+pnpm test:ci         # Vitest (run once)
+pnpm test:coverage   # Coverage report
+pnpm test:e2e        # Playwright end-to-end tests
+pnpm test:a11y       # Playwright a11y checks
+pnpm test:responsive # Playwright responsive checks
+```
+
+## BaSyx integration
+
+Start BaSyx via Docker Compose:
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+Integration test (requires BaSyx running):
+
+```bash
+BASYX_INTEGRATION=1 pnpm vitest run -- src/lib/api/basyx-client.integration.test.ts
+```
+
+## Environment variables
+
+```bash
+BASYX_REGISTRY_URL=http://localhost:4000
+BASYX_ENVIRONMENT_URL=http://localhost:4001
+```
+
+## Project structure
 
 ```
 src/
@@ -45,61 +153,11 @@ src/
 └── types/                  # AAS v3.0 types
 ```
 
-## Supported Templates
+## Validation behavior (friendly notes)
 
-| Template | IDTA ID |
-|----------|---------|
-| Digital Nameplate | IDTA 02006-2-0 |
-| Contact Information | IDTA 02002-1-0 |
-| Technical Data | IDTA 02003-1-2 |
-| Handover Documentation | IDTA 02004-1-2 |
-| Carbon Footprint | IDTA 02023-1-0 |
-
-## Scripts
-
-```bash
-pnpm dev          # Start dev server
-pnpm lint         # ESLint
-pnpm type-check   # TypeScript strict check
-pnpm test         # Vitest (watch)
-pnpm test:ci      # Vitest (run once)
-```
-
-## BaSyx Integration
-
-Start BaSyx via Docker Compose:
-
-```bash
-docker compose -f docker/docker-compose.yml up -d
-```
-
-Integration test (requires BaSyx running):
-
-```bash
-BASYX_INTEGRATION=1 pnpm vitest run -- src/lib/api/basyx-client.integration.test.ts
-```
-
-## Environment Variables
-
-```bash
-BASYX_REGISTRY_URL=http://localhost:4000
-BASYX_ENVIRONMENT_URL=http://localhost:4001
-```
-
-## Architecture
-
-```
-Template JSON
-   │
-   ▼
-Parser → UI Tree → Form Renderer → Form Values
-                               │
-                               ▼
-                        AAS JSON Exporter
-                               │
-                               ▼
-                        BaSyx Client (optional)
-```
+- **Cardinality** controls whether a field is required or repeatable.
+- **Value types** follow XSD rules (e.g., date, integer, anyURI).
+- Errors show inline and block export until corrected.
 
 ## Documentation
 

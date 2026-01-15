@@ -101,18 +101,14 @@ flowchart LR
 - Enforce cardinality (One, ZeroToOne, OneToMany, ZeroToMany)
 - Validate inputs against XSD valueTypes (xs:string, xs:integer, xs:anyURI, xs:date, etc.)
 - Export valid AAS JSON (Spec Part 1 v3.0) with schema validation
+- Live template catalog pulled from the official IDTA `submodel-templates` repo (published + deprecated)
 - Multi-language properties with add/remove language entries
 - Optional BaSyx integration for create/read/update
 
-## Supported templates
+## Templates
 
-| Template | IDTA ID |
-|----------|---------|
-| Digital Nameplate | IDTA 02006-2-0 |
-| Contact Information | IDTA 02002-1-0 |
-| Technical Data | IDTA 02003-1-2 |
-| Handover Documentation | IDTA 02004-1-2 |
-| Carbon Footprint | IDTA 02023-1-0 |
+Browse all available templates at `/templates` (or click **Browse All** on the home page).  
+If the remote catalog is unavailable, the app falls back to a small built‑in list.
 
 ## Quick start
 
@@ -188,6 +184,7 @@ src/
 - **Cardinality** controls whether a field is required or repeatable.
 - **Value types** follow XSD rules (e.g., date, integer, anyURI).
 - Errors show inline and block export until corrected.
+- **Export structure** keeps empty sections (collections/lists) but omits empty fields unless explicitly filled.
 
 ## Documentation
 
